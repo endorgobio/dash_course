@@ -9,8 +9,8 @@ import plotly.express as px
 from plotly import graph_objs as go
 
 # Leer datos preprocesados
-df_precioProm = pd.read_csv('data/output.csv', index_col=0)
-df_promRec = pd.read_csv('data/promRec.csv')
+df_precioProm = pd.read_csv(r'https://raw.githubusercontent.com/endorgobio/dash_course/master/data/output.csv', index_col=0)
+df_promRec = pd.read_csv(r'https://raw.githubusercontent.com/endorgobio/dash_course/master/data/promRec.csv')
 df_promRec.reset_index(drop=True, inplace=True)
 
 # obetner listas para usar en el layout
