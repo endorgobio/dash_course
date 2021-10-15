@@ -31,6 +31,10 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets,
                 title="dash_board",
                 suppress_callback_exceptions=True)
 
+# Para correr en heroku
+server = app.server
+
+
 
 # Define el layout
 app.layout = dbc.Container(
