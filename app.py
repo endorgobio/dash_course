@@ -3,9 +3,8 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-import dash_table
-from dash import no_update
-from dash.dependencies import Input, Output, State
+import numpy as np
+from dash.dependencies import Input, Output
 import plotly.express as px
 from plotly import graph_objs as go
 
@@ -14,67 +13,38 @@ df_precioProm = pd.read_csv('data/output.csv', index_col=0)
 df_promRec = pd.read_csv('data/promRec.csv')
 df_promRec.reset_index(drop=True, inplace=True)
 
-# get data from the dataframe to be used in the layout
-import numpy as np
+# obetner listas para usar en el layout
 ciudades = df_precioProm['ciudad'].unique()
 ciudades = np.sort(ciudades)
 ciudades_dict =[{"label": k, "value": k} for k in ciudades]
 productos = df_precioProm['producto'].unique()
 productos = np.sort(productos)
 productos_dict =[{"label": k, "value": k} for k in productos]
-controls = dbc.Row([
-        dbc.Col(
-            dbc.Card(
-              dbc.CardBody(
-                  [
-                      dcc.Dropdown(
-                                  id='prod-dropdown',
-                                  options=productos_dict,
-                                  value=productos[0]
-                              ),
-                  ]
-              ),
-          ),
-          md=6
-        ),
-        dbc.Col(
-            dbc.Card(
-              dbc.CardBody(
-                  [
-                      dcc.Dropdown(
-                                  id='city-dropdown',
-                                  options=ciudades_dict,
-                                  value=ciudades[0]
-                              ),
-                  ]
-              ),
-          ),
-          md=6
-        ),
-    ]
-)
 
 
-# Define the stylesheets
-external_stylesheets = [dbc.themes.BOOTSTRAP,
-    #'https://codepen.io/chriddyp/pen/bWLwgP.css'
-    'https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap',
-    #'https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet'
-]
+# Define stylesheets
+# Aquí deben adicionarse algunos estilos que deseen adicionarse
+external_stylesheets = [dbc.themes.BOOTSTRAP,]
 
-# Creates the app
+# Crea la app
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets,
                 title="dash_board",
                 suppress_callback_exceptions=True)
 
 
-# Define Layout
+# Define el layout
 app.layout = dbc.Container(
     fluid=True,
     children=[
-        dbc.Row([html.Img(src='assets/images/imagenBanner_Zonificacion1.jpg',
+        dbc.Row([html.Img(src='assets/images/heading.png',
                          style={'width':'100%'}),
-                 html.P(" Este es un texto de ensayo")]),
+                 html.P(" Esta es una herramienta interactiva que permite visualizar la información de precios "
+                        "y cantidades de los distintos productos comercializados en las centrales mayoristas "
+                        "del país. La información es tomada del SIPSA. Esta plataforma es administrada por el "
+                        "Departamento Administrativo Nacional de Estadística ( DANE) y recopila información "
+                        "que diariamente se registra desde las centales de abastos",
+                        style={'margin':30,
+                               'padding': 10})]),
         dbc.Row([
             dbc.Col(
                 dcc.Dropdown(
@@ -91,11 +61,23 @@ app.layout = dbc.Container(
             ],
             style={'marginTop': 10,
                    'marginBottom': 10}),
+
         dbc.Row(
             dbc.Col(dcc.Graph(id="line_graph"), width=12)
         ),
         dbc.Row([
             dbc.Col([
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.P('Las cantidades comercializadas en cada central '
+                                   'de abastos son de interes para tener una idea de '
+                                   'la oferta de productos agrícolas en el país.'
+                                   'Seleccione un producto y la fecha para la que '
+                                   'desea conocer la cantidad comercializada')
+                        ]
+                    ),
+                ),
                 dcc.Dropdown(
                     id='prod2-dropdown',
                     options=productos_dict,
@@ -107,16 +89,21 @@ app.layout = dbc.Container(
                     initial_visible_month=df_promRec['enmaFecha'].min(),
                     date=df_promRec['enmaFecha'].max(),
                     display_format='DD/MM/YYYY',
-                ),
-            ],
+                    style={'marginTop': 10,
+                           'marginBottom': 10,
+                           'align': 'center'})
+                ],
                 width=4),
-            dbc.Col(dcc.Graph(id="map_graph"), width=8)]
-        )
+            dbc.Col(dcc.Graph(id="map_graph"), width=8)],
+            align='center',
+            justify='center'
+        ),
+        dbc.Row(html.Img(src='assets/images/footnote.png', style={'width':'100%'})),
 
     ],
 )
 
-# Callback to update the graph
+# Callback para actualizar gráfico de línea
 @app.callback(
     Output('line_graph', 'figure'),
     Input(component_id='prod-dropdown', component_property='value'),
@@ -132,13 +119,14 @@ def crear_figura(producto, ciudad):
     # create the figure
     fig = px.line(df_filtered, x='fechaCaptura', y='precioPromedio',
                   title="Precio por kg de {} en las distintas plazas de mercado".format(producto),
-                  labels={'value': 'precio (kg)',
+                  labels={'precioPromedio': 'precio (kg)',
                           'fechaCaptura': 'Fecha registro'}
                   )
+    fig.update_layout(title_x=0.5)
     df_filtered.sort_values(by=['fechaCaptura'], inplace=True)
     return fig
 
-# Callback to update the graph
+# Callback para actualizar mapa
 @app.callback(
     Output('map_graph', 'figure'),
     Input(component_id='prod2-dropdown', component_property='value'),
@@ -152,9 +140,8 @@ def crear_mapa(producto, fecha):
     # Agregamos una columna que indique la razon de cada cantidad recogida respecto al valor máximo
     maxRec = df_filtered['promedioKg'].max() / 50
     df_filtered['size'] = df_filtered['promedioKg'] / maxRec
-
+    # Crea el mapa
     map = go.Figure()
-
     map.add_trace(go.Scattermapbox(
         lat=df_filtered['LATITUD'],
         lon=df_filtered['LONGITUD'],
@@ -188,6 +175,7 @@ def crear_mapa(producto, fecha):
     ),
 
     return map
+
 
 # main to run the app
 if __name__ == "__main__":
